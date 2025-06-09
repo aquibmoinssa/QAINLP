@@ -1,11 +1,4 @@
 streamlit
-qiskit
-numpy
-matplotlib
-plotly
-pandas
-scipy
-qiskit-aer
-qiskit-terra
-python-dotenv
-pylatexenc
+sentence-transformers
+pdfplumber
+nltk
