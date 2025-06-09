@@ -1,23 +1,30 @@
 import pdfplumber
-import spacy
-from sentence_transformers import SentenceTransformer
+import re
+from transformers import AutoTokenizer, AutoModel
+import torch
+import torch.nn.functional as F
 
-nlp = spacy.load("en_core_web_sm")
-
+@torch.inference_mode()
 def extract_text_from_pdf(pdf_file):
     text = ""
     with pdfplumber.open(pdf_file) as pdf:
         for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+            if (t := page.extract_text()):
+                text += t + "\n"
     return text
 
 def split_sentences(text):
-    doc = nlp(text)
-    return [sent.text.strip() for sent in doc.sents if sent.text.strip()]
+    return re.split(r'(?<=[.!?])\s+', text.strip())
 
-def get_sentence_embeddings(sentences, model_name='all-MiniLM-L6-v2'):
-    model = SentenceTransformer(model_name)
-    embeddings = model.encode(sentences, convert_to_tensor=True)
-    return embeddings
+@torch.inference_mode()
+def load_model(name="sentence-transformers/all-MiniLM-L6-v2"):
+    tokenizer = AutoTokenizer.from_pretrained(name)
+    model = AutoModel.from_pretrained(name)
+    return tokenizer, model
+
+@torch.inference_mode()
+def get_embeddings(sentences, tokenizer, model):
+    inputs = tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
+    outputs = model(**inputs)
+    embeddings = outputs.last_hidden_state[:, 0, :]  # CLS token
+    return F.normalize(embeddings, p=2, dim=1)
