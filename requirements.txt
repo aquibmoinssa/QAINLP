@@ -2,3 +2,4 @@ streamlit
 transformers
 torch==2.1.2
 pdfplumber
+pillow==10.4.0
